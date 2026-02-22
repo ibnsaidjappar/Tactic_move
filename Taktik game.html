@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taktik Fikrla | O'zDJTSU vs AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#c8a010;--gold-l:#e8c040;--blue:#00aacc;
+  --ai:#7b2fff;--ai2:#ff2fa0;--bg:#07070f;--card:#10101a;
+  --green:#00ff88;--red:#ff3355;
+}
+
+body{background:var(--bg);color:#fff;font-family:'Rajdhani',sans-serif;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;padding:16px 12px 60px;overflow-x:hidden;}
+
+/* BG particles */
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at 20% 20%, rgba(123,47,255,0.05) 0%, transparent 60%),
+             radial-gradient(ellipse at 80% 80%, rgba(200,160,16,0.05) 0%, transparent 60%);
+  pointer-events:none;z-index:0;}
+
+/* LANG SWITCH */
+.lang-bar{display:flex;gap:6px;margin-bottom:12px;z-index:1;}
+.lang-btn{font-family:'Orbitron',monospace;font-size:0.6rem;padding:5px 12px;border-radius:20px;
+  border:1px solid #333;background:rgba(255,255,255,0.04);color:#666;cursor:pointer;transition:all 0.2s;letter-spacing:0.08em;}
+.lang-btn.active{background:rgba(200,160,16,0.18);color:var(--gold);border-color:var(--gold);}
+.lang-btn:hover{border-color:#555;color:#aaa;}
+
+/* HEADER */
+h1{font-family:'Orbitron',monospace;font-size:clamp(1.1rem,4vw,2rem);letter-spacing:0.15em;
+  text-align:center;margin-bottom:4px;z-index:1;
+  background:linear-gradient(90deg,var(--gold),var(--blue),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200%;animation:shimmer 3s linear infinite;}
+@keyframes shimmer{to{background-position:200% center;}}
+
+.subtitle{font-size:0.8rem;color:#555;margin-bottom:14px;letter-spacing:0.12em;z-index:1;text-align:center;}
+
+/* SCOREBOARD */
+.scoreboard{display:flex;gap:14px;align-items:center;margin-bottom:14px;width:100%;max-width:580px;justify-content:center;z-index:1;}
+.player-card{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 16px;
+  border-radius:14px;border:2px solid transparent;transition:all 0.3s;min-width:120px;background:var(--card);}
+.player-card.uni{border-color:rgba(200,160,16,0.4);}
+.player-card.ai{border-color:rgba(123,47,255,0.4);}
+.player-card.active{transform:scale(1.05);}
+.player-card.uni.active{box-shadow:0 0 24px rgba(200,160,16,0.5);border-color:var(--gold);}
+.player-card.ai.active{box-shadow:0 0 24px rgba(123,47,255,0.5);border-color:var(--ai);}
+
+.player-color-dot{width:52px;height:52px;border-radius:50%;}
+.uni-dot{background:linear-gradient(135deg,#c8a010,#e8c040);box-shadow:0 0 20px rgba(200,160,16,0.5);}
+.ai-dot{background:linear-gradient(135deg,#7b2fff,#ff2fa0);box-shadow:0 0 20px rgba(123,47,255,0.5);}
+.player-name{font-family:'Orbitron',monospace;font-size:0.55rem;letter-spacing:0.08em;color:#777;}
+.player-score{font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;line-height:1;}
+.uni .player-score{color:var(--gold);}
+.ai .player-score{color:var(--ai);}
+.vs-divider{font-family:'Orbitron',monospace;font-size:1rem;color:#333;font-weight:700;}
+
+/* TURN */
+.turn-indicator{font-family:'Orbitron',monospace;font-size:0.62rem;letter-spacing:0.08em;
+  color:#888;margin-bottom:6px;height:22px;display:flex;align-items:center;gap:8px;z-index:1;}
+.turn-dot{width:8px;height:8px;border-radius:50%;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.turn-dot.uni{background:var(--gold);}
+.turn-dot.ai{background:var(--ai);}
+.ai-thinking{display:none;font-family:'Orbitron',monospace;font-size:0.6rem;color:var(--ai);
+  letter-spacing:0.1em;margin-bottom:6px;z-index:1;}
+.ai-thinking.show{display:flex;gap:3px;}
+.ai-thinking span{animation:blink 0.5s infinite alternate;}
+.ai-thinking span:nth-child(2){animation-delay:0.2s;}
+.ai-thinking span:nth-child(3){animation-delay:0.4s;}
+@keyframes blink{from{opacity:0.2;}to{opacity:1;}}
+
+/* CANVAS */
+.grid-wrap{position:relative;cursor:pointer;z-index:1;margin-bottom:14px;
+  border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(0,0,0,0.6);}
+canvas{display:block;}
+
+/* CONTROLS */
+.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;z-index:1;margin-bottom:8px;}
+.size-label{font-size:0.72rem;color:#555;font-family:'Orbitron',monospace;letter-spacing:0.06em;}
+.size-btns{display:flex;gap:5px;}
+.btn{font-family:'Orbitron',monospace;font-size:0.62rem;letter-spacing:0.08em;padding:9px 16px;
+  border-radius:8px;border:none;cursor:pointer;transition:all 0.2s;font-weight:700;}
+.btn-new{background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#000;}
+.btn-new:hover{transform:scale(1.05);box-shadow:0 0 20px var(--gold);}
+.btn-size{background:rgba(255,255,255,0.04);color:#666;border:1px solid #2a2a2a;padding:8px 13px;border-radius:6px;}
+.btn-size.active{background:rgba(200,160,16,0.15);color:var(--gold);border-color:var(--gold);}
+.btn-size:hover{border-color:#555;color:#bbb;}
+.btn-admin{background:rgba(0,255,136,0.1);color:var(--green);border:1px solid rgba(0,255,136,0.3);
+  padding:8px 14px;border-radius:6px;}
+.btn-admin:hover{background:rgba(0,255,136,0.2);box-shadow:0 0 14px rgba(0,255,136,0.2);}
+
+/* RESULT OVERLAY */
+.result-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:200;
+  align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.result-overlay.show{display:flex;}
+.result-box{background:var(--card);border-radius:20px;padding:32px 40px;text-align:center;
+  border:2px solid var(--gold);box-shadow:0 0 60px rgba(200,160,16,0.25);max-width:480px;width:90%;}
+.result-title{font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:900;margin-bottom:8px;}
+.result-scores{font-size:1rem;color:#888;margin-bottom:18px;}
+.challenge-box{background:rgba(200,160,16,0.06);border:1px solid rgba(200,160,16,0.3);
+  border-radius:12px;padding:16px 20px;margin-bottom:18px;text-align:left;}
+.challenge-label{font-family:'Orbitron',monospace;font-size:0.6rem;color:var(--gold);
+  letter-spacing:0.1em;margin-bottom:8px;}
+.challenge-icon{font-size:2rem;margin-bottom:6px;display:block;}
+.challenge-text{font-size:1rem;font-weight:700;color:#fff;line-height:1.4;}
+
+/* ADMIN PANEL */
+.admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;
+  align-items:center;justify-content:center;}
+.admin-overlay.show{display:flex;}
+.admin-box{background:var(--card);border-radius:20px;padding:28px 36px;width:90%;max-width:500px;
+  border:2px solid var(--green);box-shadow:0 0 50px rgba(0,255,136,0.15);}
+.admin-title{font-family:'Orbitron',monospace;font-size:1rem;color:var(--green);
+  letter-spacing:0.12em;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.admin-stat{display:flex;justify-content:space-between;align-items:center;
+  padding:12px 16px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:8px;}
+.admin-stat-label{font-size:0.85rem;color:#888;}
+.admin-stat-val{font-family:'Orbitron',monospace;font-size:1.2rem;color:#fff;font-weight:700;}
+.admin-stat-val.green{color:var(--green);}
+.admin-stat-val.gold{color:var(--gold);}
+.admin-stat-val.purple{color:var(--ai);}
+.admin-close{font-family:'Orbitron',monospace;font-size:0.6rem;padding:8px 18px;
+  background:rgba(255,51,85,0.1);color:var(--red);border:1px solid rgba(255,51,85,0.3);
+  border-radius:6px;cursor:pointer;margin-top:14px;transition:all 0.2s;}
+.admin-close:hover{background:rgba(255,51,85,0.2);}
+.admin-pw-form{display:flex;gap:8px;margin-bottom:16px;}
+.admin-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid #333;color:#fff;
+  padding:9px 14px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-size:0.95rem;outline:none;}
+.admin-input:focus{border-color:var(--green);}
+.admin-login-btn{font-family:'Orbitron',monospace;font-size:0.6rem;padding:9px 14px;
+  background:rgba(0,255,136,0.1);color:var(--green);border:1px solid rgba(0,255,136,0.3);
+  border-radius:8px;cursor:pointer;white-space:nowrap;}
+
+.admin-sessions{margin-top:12px;}
+.session-item{display:flex;justify-content:space-between;padding:8px 12px;
+  background:rgba(255,255,255,0.02);border-radius:6px;margin-bottom:4px;font-size:0.8rem;color:#666;}
+
+/* FOOTER */
+.footer{position:fixed;bottom:0;left:0;right:0;padding:8px;text-align:center;
+  background:rgba(7,7,15,0.95);border-top:1px solid #1a1a2a;z-index:10;
+  font-family:'Orbitron',monospace;font-size:0.55rem;color:#333;letter-spacing:0.1em;}
+.footer span{color:#555;}
+.footer a{color:var(--gold);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<!-- LANG -->
+<div class="lang-bar">
+  <button class="lang-btn active" onclick="setLang('uz')">UZ</button>
+  <button class="lang-btn" onclick="setLang('ru')">RU</button>
+  <button class="lang-btn" onclick="setLang('en')">EN</button>
+</div>
+
+<h1 id="mainTitle">TAKTIK FIKRLA</h1>
+<p class="subtitle" id="mainSub">O'zDJTSU Sun'iy Intellektga qarshi</p>
+
+<!-- SCOREBOARD -->
+<div class="scoreboard">
+  <div class="player-card uni" id="uniCard">
+    <div class="player-color-dot uni-dot"></div>
+    <span class="player-name" id="uniPlayerName">O'zDJTSU</span>
+    <span class="player-score" id="uniScore">0</span>
+  </div>
+  <div class="vs-divider">VS</div>
+  <div class="player-card ai" id="aiCard">
+    <div class="player-color-dot ai-dot"></div>
+    <span class="player-name" id="aiLabel">SUN'IY INTELLEKT</span>
+    <span class="player-score" id="aiScore">0</span>
+  </div>
+</div>
+
+<div class="turn-indicator">
+  <div class="turn-dot" id="turnDot"></div>
+  <span id="turnText"></span>
+</div>
+<div class="ai-thinking" id="aiThinking">AI<span>.</span><span>.</span><span>.</span></div>
+
+<div class="grid-wrap">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<div class="controls">
+  <span class="size-label" id="sizeLabel">SXEMA KATTALIGI:</span>
+  <div class="size-btns">
+    <button class="btn btn-size active" onclick="setSize(4)" id="sz4">4×4</button>
+    <button class="btn btn-size" onclick="setSize(5)" id="sz5">5×5</button>
+    <button class="btn btn-size" onclick="setSize(6)" id="sz6">6×6</button>
+  </div>
+  <button class="btn btn-new" onclick="newGame()" id="btnNew">🔄 YANGI</button>
+  <button class="btn btn-admin" onclick="openAdmin()">⚙️ ADMIN</button>
+</div>
+
+<!-- RESULT -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-box">
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-scores" id="resultScores"></div>
+    <div class="challenge-box" id="challengeBox" style="display:none">
+      <div class="challenge-label" id="challengeLabel">🏆 G'OLIB VAZIFASI</div>
+      <span class="challenge-icon" id="challengeIcon"></span>
+      <div class="challenge-text" id="challengeText"></div>
+    </div>
+    <button class="btn btn-new" onclick="newGame();document.getElementById('resultOverlay').classList.remove('show')" id="btnPlayAgain">YANA O'YNASH</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-box">
+    <div class="admin-title">⚙️ <span id="adminTitleTxt">ADMIN PANEL</span></div>
+    <div id="adminLoginSection">
+      <div class="admin-pw-form">
+        <input class="admin-input" type="password" id="adminPw" placeholder="Parol..." onkeydown="if(event.key==='Enter')adminLogin()">
+        <button class="admin-login-btn" onclick="adminLogin()" id="adminLoginBtn">KIRISH</button>
+      </div>
+      <div id="adminErr" style="color:var(--red);font-size:0.8rem;display:none">❌ <span id="adminErrTxt">Noto'g'ri parol</span></div>
+    </div>
+    <div id="adminStats" style="display:none">
+      <div class="admin-stat">
+        <span class="admin-stat-label" id="statOnline">Hozir o'ynayotganlar</span>
+        <span class="admin-stat-val green" id="statOnlineVal">0</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label" id="statTotal">Jami o'yinlar</span>
+        <span class="admin-stat-val gold" id="statTotalVal">0</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label" id="statUniWins">O'zDJTSU g'alaba</span>
+        <span class="admin-stat-val gold" id="statUniWinsVal">0</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label" id="statAiWins">AI g'alaba</span>
+        <span class="admin-stat-val purple" id="statAiWinsVal">0</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label" id="statDraws">Durranglar</span>
+        <span class="admin-stat-val" id="statDrawsVal">0</span>
+      </div>
+      <div class="admin-sessions" id="adminSessionList"></div>
+    </div>
+    <button class="admin-close" onclick="closeAdmin()" id="adminCloseBtn">✕ YOPISH</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span id="footerDev">Ishlab chiquvchi:</span> <a href="#">ibnsaidjappar</a> &nbsp;|&nbsp; <span id="footerCopy">© 2025 O'zDJTSU</span>
+</div>
+
+<script>
+// ===== STATS (localStorage simulation in-memory + localStorage) =====
+let stats = {online:0, total:0, uniWins:0, aiWins:0, draws:0, sessions:[]};
+try {
+  const s = localStorage.getItem('taktik_stats');
+  if(s) stats = JSON.parse(s);
+} catch(e){}
+
+function saveStats(){try{localStorage.setItem('taktik_stats',JSON.stringify(stats));}catch(e){}}
+
+// Track this session
+const sessionId = Date.now();
+const sessionStart = new Date().toLocaleString();
+stats.online = (stats.online||0) + 1;
+stats.sessions = stats.sessions||[];
+stats.sessions.unshift({id:sessionId, start:sessionStart, lang:'uz'});
+if(stats.sessions.length > 20) stats.sessions.pop();
+saveStats();
+
+window.addEventListener('beforeunload', ()=>{
+  stats.online = Math.max(0, (stats.online||1)-1);
+  saveStats();
+});
+
+// ===== LANGUAGES =====
+const LANGS = {
+  uz:{
+    title:'TAKTIK YURISH',
+    sub:"O'zDJTSU Sun'iy Intellektga qarshi",
+    uniName:"O'zDJTSU",
+    aiLabel:"SUN'IY INTELLEKT",
+    sizeLabel:'SXEMA KATTALIGI:',
+    btnNew:'🔄 YANGI',
+    turnUni:"O'zDJTSU — sizning navbatingiz",
+    turnAi:"Sun'iy Intellekt o'ylamoqda...",
+    aiThinking:"SI O'YLAMOQDA",
+    uniWin:"🏆 O'zDJTSU G'OLIB!",
+    aiWin:"🤖 SUN'IY INTELLEKT G'OLIB!",
+    draw:"🤝 DURRANG!",
+    challengeLabel:"🏆 G'OLIB VAZIFASI",
+    btnPlayAgain:"YANA O'YNASH",
+    adminTitle:'ADMIN PANEL',
+    statOnline:"Hozir o'ynayotganlar",
+    statTotal:"Jami o'yinlar",
+    statUniWins:"O'zDJTSU g'alabalari",
+    statAiWins:"SI g'alabalari",
+    statDraws:'Durranglar',
+    adminLoginBtn:'KIRISH',
+    adminErr:"Noto'g'ri parol",
+    adminClose:'✕ YOPISH',
+    footerDev:"Ishlab chiquvchi:",
+    footerCopy:"© 2025 O'zDJTSU",
+    adminPw:"Parol...",
+    resultScoreFn:(u,a)=>`O'zDJTSU: ${u} | SI: ${a}`,
+    sessionLabel:'Sessiya',
+  },
+  ru:{
+    title:'ТАКТИЧЕСКИЙ ХОД',
+    sub:'УзГУФКС против Искусственного Интеллекта',
+    uniName:"УзГУФКС",
+    aiLabel:'ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ',
+    sizeLabel:'РАЗМЕР СХЕМЫ:',
+    btnNew:'🔄 НОВАЯ',
+    turnUni:'УзГУФКС — ваш ход',
+    turnAi:'ИИ думает...',
+    aiThinking:'ИИ ДУМАЕТ',
+    uniWin:'🏆 УзГУФКС ПОБЕДИЛ!',
+    aiWin:'🤖 ИИ ПОБЕДИЛ!',
+    draw:'🤝 НИЧЬЯ!',
+    challengeLabel:'🏆 ЗАДАНИЕ ПОБЕДИТЕЛЮ',
+    btnPlayAgain:'ИГРАТЬ СНОВА',
+    adminTitle:'ПАНЕЛЬ АДМИНИСТРАТОРА',
+    statOnline:'Сейчас играют',
+    statTotal:'Всего игр',
+    statUniWins:'Победы УзГУФКС',
+    statAiWins:'Победы ИИ',
+    statDraws:'Ничьи',
+    adminLoginBtn:'ВОЙТИ',
+    adminErr:'Неверный пароль',
+    adminClose:'✕ ЗАКРЫТЬ',
+    footerDev:"Разработчик:",
+    footerCopy:"© 2025 O'zDJTSU",
+    adminPw:"Пароль...",
+    resultScoreFn:(u,a)=>`УзГУФКС: ${u} | ИИ: ${a}`,
+    sessionLabel:'Сессия',
+  },
+  en:{
+    title:'TACTICAL MOVE',
+    sub:'UzSUPES vs Artificial Intelligence',
+    uniName:"UzSUPES",
+    aiLabel:'ARTIFICIAL INTELLIGENCE',
+    sizeLabel:'GRID SIZE:',
+    btnNew:'🔄 NEW',
+    turnUni:'UzSUPES — your turn',
+    turnAi:'AI is thinking...',
+    aiThinking:'AI THINKING',
+    uniWin:'🏆 UzSUPES WINS!',
+    aiWin:'🤖 AI WINS!',
+    draw:'🤝 DRAW!',
+    challengeLabel:'🏆 WINNER CHALLENGE',
+    btnPlayAgain:'PLAY AGAIN',
+    adminTitle:'ADMIN PANEL',
+    statOnline:'Currently playing',
+    statTotal:'Total games',
+    statUniWins:'UzSUPES wins',
+    statAiWins:'AI wins',
+    statDraws:'Draws',
+    adminLoginBtn:'LOGIN',
+    adminErr:'Wrong password',
+    adminClose:'✕ CLOSE',
+    footerDev:"Developer:",
+    footerCopy:"© 2025 O'zDJTSU",
+    adminPw:"Password...",
+    resultScoreFn:(u,a)=>`UzSUPES: ${u} | AI: ${a}`,
+    sessionLabel:'Session',
+  }
+};
+
+const SPORT_CHALLENGES = {
+  uz:[
+    {icon:'🏃',text:"15 daqiqa davomida 1 km yugur va vaqtingni qayd et!"},
+    {icon:'⚽',text:"30 ta futbol to'p tepish mashqini baj'ar!"},
+    {icon:'🏀',text:"Basketbol saytiga bor, 20 ta erkin urish qil!"},
+    {icon:'🤸',text:"50 ta sakrash va 20 ta qo'l tutib o'tirish bajari!"},
+    {icon:'🏊',text:"Suzish havzasiga bor, 4 marta 25 metr suz!"},
+    {icon:'🎯',text:"Strelka musobaqasiga qatnash yoki 30 daqiqa nishon o'rgatish!"},
+    {icon:'🏋️',text:"Og'irlik ko'tarish mashqini baj'ar: 3x10 squat!"},
+    {icon:'🚴',text:"30 daqiqa velosiped haydab kel!"},
+    {icon:'🤼',text:"Kurash bo'limiga bor va trenerni toping!"},
+    {icon:'🏸',text:"Badminton o'yna, 3 ta set!"},
+  ],
+  ru:[
+    {icon:'🏃',text:"Пробеги 1 км за 15 минут и запиши время!"},
+    {icon:'⚽',text:"Выполни 30 ударов по мячу!"},
+    {icon:'🏀',text:"Зайди на баскетбольную площадку и сделай 20 штрафных!"},
+    {icon:'🤸',text:"Сделай 50 прыжков и 20 приседаний!"},
+    {icon:'🏊',text:"Сходи в бассейн, проплыви 4 раза по 25 м!"},
+    {icon:'🎯',text:"Запишись на занятие стрельбой или тренируйся 30 мин!"},
+    {icon:'🏋️',text:"Выполни силовую тренировку: 3×10 приседаний!"},
+    {icon:'🚴',text:"Езди на велосипеде 30 минут!"},
+    {icon:'🤼',text:"Зайди в секцию борьбы и найди тренера!"},
+    {icon:'🏸',text:"Сыграй в бадминтон, 3 сета!"},
+  ],
+  en:[
+    {icon:'🏃',text:"Run 1 km in 15 minutes and record your time!"},
+    {icon:'⚽',text:"Complete 30 football kick exercises!"},
+    {icon:'🏀',text:"Go to the basketball court and make 20 free throws!"},
+    {icon:'🤸',text:"Do 50 jumps and 20 squats!"},
+    {icon:'🏊',text:"Go to the pool and swim 4x25 meters!"},
+    {icon:'🎯',text:"Join a shooting exercise or practice for 30 minutes!"},
+    {icon:'🏋️',text:"Complete a strength session: 3×10 squats!"},
+    {icon:'🚴',text:"Ride a bicycle for 30 minutes!"},
+    {icon:'🤼',text:"Visit the wrestling section and find a coach!"},
+    {icon:'🏸',text:"Play badminton, 3 sets!"},
+  ],
+};
+
+let lang = 'uz';
+function setLang(l){
+  lang=l;
+  document.querySelectorAll('.lang-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['uz','ru','en'][i]===l);
+  });
+  applyLang();
+}
+
+function applyLang(){
+  const L=LANGS[lang];
+  document.getElementById('mainTitle').textContent=L.title;
+  document.getElementById('mainSub').textContent=L.sub;
+  document.getElementById('uniPlayerName').textContent=L.uniName;
+  document.getElementById('aiLabel').textContent=L.aiLabel;
+  document.getElementById('sizeLabel').textContent=L.sizeLabel;
+  document.getElementById('btnNew').textContent=L.btnNew;
+  document.getElementById('btnPlayAgain').textContent=L.btnPlayAgain;
+  document.getElementById('adminTitleTxt').textContent=L.adminTitle;
+  document.getElementById('statOnline').textContent=L.statOnline;
+  document.getElementById('statTotal').textContent=L.statTotal;
+  document.getElementById('statUniWins').textContent=L.statUniWins;
+  document.getElementById('statAiWins').textContent=L.statAiWins;
+  document.getElementById('statDraws').textContent=L.statDraws;
+  document.getElementById('adminLoginBtn').textContent=L.adminLoginBtn;
+  document.getElementById('adminCloseBtn').textContent=L.adminClose;
+  document.getElementById('footerDev').textContent=L.footerDev;
+  document.getElementById('footerCopy').textContent=L.footerCopy;
+  document.getElementById('adminPw').placeholder=L.adminPw;
+  document.getElementById('adminErrTxt').textContent=L.adminErr;
+  updateTurnText();
+}
+
+function updateTurnText(){
+  const L=LANGS[lang];
+  document.getElementById('turnText').textContent = currentPlayer===1 ? L.turnUni : L.turnAi;
+  document.getElementById('aiThinking').childNodes[0].textContent = L.aiThinking;
+}
+
+// ===== GAME =====
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const CELL=80, PAD=36, LINEW=8, DOT=7;
+let N=4,hLines,vLines,boxes,currentPlayer,gameOver;
+
+const COLORS={
+  1:{line:'#c8a010',fill:'rgba(200,160,16,0.2)',shadow:'#b8960c'},
+  2:{line:'#8b3fff',fill:'rgba(123,47,255,0.2)',shadow:'#7b2fff'}
+};
+
+
+function setSize(n){
+  N=n;
+  ['sz4','sz5','sz6'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('sz'+n).classList.add('active');
+  newGame();
+}
+
+function newGame(){
+  hLines=Array.from({length:N+1},()=>Array(N).fill(0));
+  vLines=Array.from({length:N},()=>Array(N+1).fill(0));
+  boxes=Array.from({length:N},()=>Array(N).fill(0));
+  currentPlayer=1; gameOver=false;
+  const size=N*CELL+2*PAD;
+  canvas.width=size; canvas.height=size;
+  document.getElementById('uniScore').textContent='0';
+  document.getElementById('aiScore').textContent='0';
+  document.getElementById('aiThinking').classList.remove('show');
+  updateUI(); drawAll();
+}
+
+function updateUI(){
+  const isUni=currentPlayer===1;
+  document.getElementById('uniCard').classList.toggle('active',isUni);
+  document.getElementById('aiCard').classList.toggle('active',!isUni);
+  const dot=document.getElementById('turnDot');
+  dot.className='turn-dot '+(isUni?'uni':'ai');
+  updateTurnText();
+  document.getElementById('aiThinking').classList.toggle('show',!isUni);
+}
+
+function drawAll(){
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  // BG
+  ctx.fillStyle='#0a0a14';
+  ctx.roundRect(0,0,W,H,10); ctx.fill();
+  // subtle grid pattern
+  ctx.strokeStyle='rgba(255,255,255,0.025)';
+  ctx.lineWidth=1;
+  for(let r=0;r<=N;r++){for(let c=0;c<=N;c++){
+    ctx.strokeRect(PAD+c*CELL-1,PAD+r*CELL-1,2,2);
+  }}
+  // Boxes
+  for(let r=0;r<N;r++){for(let c=0;c<N;c++){
+    if(boxes[r][c]){
+      const x=PAD+c*CELL,y=PAD+r*CELL,col=COLORS[boxes[r][c]];
+      // Solid filled box with gradient
+      const g=ctx.createLinearGradient(x,y,x+CELL,y+CELL);
+      if(boxes[r][c]===1){
+        g.addColorStop(0,'rgba(200,160,16,0.45)');
+        g.addColorStop(1,'rgba(232,192,64,0.25)');
+      } else {
+        g.addColorStop(0,'rgba(123,47,255,0.45)');
+        g.addColorStop(1,'rgba(255,47,160,0.25)');
+      }
+      ctx.fillStyle=g;
+      ctx.fillRect(x,y,CELL,CELL);
+      // Inner glow border
+      ctx.strokeStyle=col.line;
+      ctx.lineWidth=2;
+      ctx.globalAlpha=0.5;
+      ctx.strokeRect(x+2,y+2,CELL-4,CELL-4);
+      ctx.globalAlpha=1;
+    }
+  }}
+  // H Lines
+  for(let r=0;r<=N;r++){for(let c=0;c<N;c++){
+    const x=PAD+c*CELL,y=PAD+r*CELL;
+    drawSeg(x,y,x+CELL,y,hLines[r][c]);
+  }}
+  // V Lines
+  for(let r=0;r<N;r++){for(let c=0;c<=N;c++){
+    const x=PAD+c*CELL,y=PAD+r*CELL;
+    drawSeg(x,y,x,y+CELL,vLines[r][c]);
+  }}
+  // Dots
+  for(let r=0;r<=N;r++){for(let c=0;c<=N;c++){
+    const x=PAD+c*CELL,y=PAD+r*CELL;
+    ctx.beginPath();ctx.arc(x,y,DOT,0,Math.PI*2);
+    ctx.fillStyle='#ddd';ctx.shadowColor='#fff';ctx.shadowBlur=8;ctx.fill();ctx.shadowBlur=0;
+  }}
+}
+
+function drawSeg(x1,y1,x2,y2,owner){
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+  if(owner){
+    const col=COLORS[owner];
+    ctx.strokeStyle=col.line;ctx.lineWidth=LINEW;
+    ctx.shadowColor=col.shadow;ctx.shadowBlur=12;ctx.lineCap='round';ctx.stroke();ctx.shadowBlur=0;
+  } else {
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1.5;
+    ctx.setLineDash([3,8]);ctx.stroke();ctx.setLineDash([]);
+  }
+}
+
+// Hover highlight
+let hoverLine=null;
+canvas.addEventListener('mousemove',e=>{
+  if(currentPlayer!==1||gameOver)return;
+  const{mx,my}=getPos(e);
+  hoverLine=getLineAt(mx,my);
+  canvas.style.cursor=hoverLine?'pointer':'default';
+  drawAll();
+  if(hoverLine){
+    const{type,r,c}=hoverLine;
+    let x1,y1,x2,y2;
+    if(type==='h'){x1=PAD+c*CELL;y1=PAD+r*CELL;x2=x1+CELL;y2=y1;}
+    else{x1=PAD+c*CELL;y1=PAD+r*CELL;x2=x1;y2=y1+CELL;}
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+    ctx.strokeStyle='rgba(200,160,16,0.5)';ctx.lineWidth=LINEW;ctx.lineCap='round';ctx.stroke();
+  }
+});
+canvas.addEventListener('mouseleave',()=>{hoverLine=null;drawAll();});
+
+canvas.addEventListener('click',e=>{
+  if(currentPlayer!==1||gameOver)return;
+  const{mx,my}=getPos(e);
+  const hit=getLineAt(mx,my);
+  if(!hit)return;
+  const scored=makeMove(hit.type,hit.r,hit.c,1);
+  if(!scored&&!gameOver){currentPlayer=2;updateUI();setTimeout(aiMove,500);}
+});
+
+function getPos(e){
+  const rect=canvas.getBoundingClientRect();
+  return{mx:(e.clientX-rect.left)*(canvas.width/rect.width),
+         my:(e.clientY-rect.top)*(canvas.height/rect.height)};
+}
+
+function getLineAt(mx,my){
+  const T=15;
+  for(let r=0;r<=N;r++)for(let c=0;c<N;c++){
+    if(hLines[r][c])continue;
+    const x=PAD+c*CELL,y=PAD+r*CELL;
+    if(Math.abs(my-y)<T&&mx>x+T&&mx<x+CELL-T)return{type:'h',r,c};
+  }
+  for(let r=0;r<N;r++)for(let c=0;c<=N;c++){
+    if(vLines[r][c])continue;
+    const x=PAD+c*CELL,y=PAD+r*CELL;
+    if(Math.abs(mx-x)<T&&my>y+T&&my<y+CELL-T)return{type:'v',r,c};
+  }
+  return null;
+}
+
+function makeMove(type,r,c,player){
+  if(type==='h')hLines[r][c]=player; else vLines[r][c]=player;
+  let scored=false;
+  for(let br=0;br<N;br++)for(let bc=0;bc<N;bc++){
+    if(!boxes[br][bc]&&hLines[br][bc]&&hLines[br+1][bc]&&vLines[br][bc]&&vLines[br][bc+1]){
+      boxes[br][bc]=player;scored=true;
+    }
+  }
+  const uS=boxes.flat().filter(v=>v===1).length;
+  const aS=boxes.flat().filter(v=>v===2).length;
+  document.getElementById('uniScore').textContent=uS;
+  document.getElementById('aiScore').textContent=aS;
+  drawAll();
+  if(uS+aS===N*N){endGame(uS,aS);return true;}
+  if(scored){currentPlayer=player;return true;}
+  currentPlayer=player;
+  return false;
+}
+
+// ===== AI =====
+function countSides(br,bc){
+  return(hLines[br][bc]?1:0)+(hLines[br+1][bc]?1:0)+(vLines[br][bc]?1:0)+(vLines[br][bc+1]?1:0);
+}
+function getAllMoves(){
+  const m=[];
+  for(let r=0;r<=N;r++)for(let c=0;c<N;c++)if(!hLines[r][c])m.push({type:'h',r,c});
+  for(let r=0;r<N;r++)for(let c=0;c<=N;c++)if(!vLines[r][c])m.push({type:'v',r,c});
+  return m;
+}
+function simMove(m,val){if(m.type==='h')hLines[m.r][m.c]=val;else vLines[m.r][m.c]=val;}
+function findWin(){
+  for(const m of getAllMoves()){
+    simMove(m,2);
+    let ok=false;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(!boxes[r][c]&&countSides(r,c)===4)ok=true;
+    simMove(m,0);if(ok)return m;
+  }
+  return null;
+}
+function findSafe(){
+  for(const m of getAllMoves()){
+    simMove(m,2);
+    let bad=false;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(!boxes[r][c]&&countSides(r,c)===3)bad=true;
+    simMove(m,0);if(!bad)return m;
+  }
+  return null;
+}
+function aiMove(){
+  if(gameOver)return;
+  let mv=findWin()||findSafe();
+  if(!mv){const a=getAllMoves();mv=a[Math.floor(Math.random()*a.length)];}
+  if(!mv)return;
+  const scored=makeMove(mv.type,mv.r,mv.c,2);
+  if(scored&&!gameOver)setTimeout(aiMove,400);
+  else if(!gameOver){currentPlayer=1;updateUI();}
+}
+
+// ===== END GAME =====
+function endGame(uniS,aiS){
+  gameOver=true;
+  stats.total=(stats.total||0)+1;
+  const L=LANGS[lang];
+  let winner=0;
+  if(uniS>aiS){stats.uniWins=(stats.uniWins||0)+1;winner=1;}
+  else if(aiS>uniS){stats.aiWins=(stats.aiWins||0)+1;winner=2;}
+  else{stats.draws=(stats.draws||0)+1;}
+  saveStats();
+  document.getElementById('aiThinking').classList.remove('show');
+  const ol=document.getElementById('resultOverlay');
+  ol.classList.add('show');
+  const titleEl=document.getElementById('resultTitle');
+  document.getElementById('resultScores').textContent=L.resultScoreFn(uniS,aiS);
+  document.getElementById('challengeLabel').textContent=L.challengeLabel;
+  if(uniS>aiS){titleEl.textContent=L.uniWin;titleEl.style.color='var(--gold)';}
+  else if(aiS>uniS){titleEl.textContent=L.aiWin;titleEl.style.color='var(--ai)';}
+  else{titleEl.textContent=L.draw;titleEl.style.color='#fff';}
+  // Sport challenge for winner
+  if(winner>0){
+    const challenges=SPORT_CHALLENGES[lang];
+    const ch=challenges[Math.floor(Math.random()*challenges.length)];
+    document.getElementById('challengeIcon').textContent=ch.icon;
+    document.getElementById('challengeText').textContent=ch.text;
+    document.getElementById('challengeBox').style.display='block';
+  } else {
+    document.getElementById('challengeBox').style.display='none';
+  }
+}
+
+// ===== ADMIN =====
+const ADMIN_PASS='ozdjtsu2025';
+let adminLoggedIn=false;
+
+function openAdmin(){document.getElementById('adminOverlay').classList.add('show');}
+function closeAdmin(){document.getElementById('adminOverlay').classList.remove('show');}
+
+function adminLogin(){
+  const pw=document.getElementById('adminPw').value;
+  if(pw===ADMIN_PASS){
+    adminLoggedIn=true;
+    document.getElementById('adminLoginSection').style.display='none';
+    document.getElementById('adminStats').style.display='block';
+    document.getElementById('adminErr').style.display='none';
+    refreshAdminStats();
+  } else {
+    document.getElementById('adminErr').style.display='block';
+    document.getElementById('adminPw').value='';
+  }
+}
+
+function refreshAdminStats(){
+  try{const s=localStorage.getItem('taktik_stats');if(s)stats=JSON.parse(s);}catch(e){}
+  document.getElementById('statOnlineVal').textContent=stats.online||0;
+  document.getElementById('statTotalVal').textContent=stats.total||0;
+  document.getElementById('statUniWinsVal').textContent=stats.uniWins||0;
+  document.getElementById('statAiWinsVal').textContent=stats.aiWins||0;
+  document.getElementById('statDrawsVal').textContent=stats.draws||0;
+  const L=LANGS[lang];
+  const sl=document.getElementById('adminSessionList');
+  const sessions=stats.sessions||[];
+  sl.innerHTML=sessions.slice(0,8).map((s,i)=>
+    `<div class="session-item"><span>${L.sessionLabel} ${i+1}</span><span>${s.start||''}</span></div>`
+  ).join('');
+}
+
+document.getElementById('adminOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('adminOverlay'))closeAdmin();
+});
+document.getElementById('resultOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('resultOverlay'))document.getElementById('resultOverlay').classList.remove('show');
+});
+
+// Init
+applyLang();
+newGame();
+</script>
+</body>
+</html>
